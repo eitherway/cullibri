@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
+import urllib.request
 from pathlib import Path
 
 import cv2
@@ -11,6 +13,9 @@ import torch
 from PIL import Image, ImageOps
 
 MODELS = Path(__file__).resolve().parent.parent / "models"
+# MediaPipe Face Landmarker (float16, version 1) by Google, Apache License 2.0.
+FACE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+FACE_MODEL_SHA256 = "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff"
 VERSION = 2  # bump to invalidate cached analyses
 WORK_SIDE = 2048  # every photo is measured at this longest side so numbers are comparable
 
@@ -19,6 +24,24 @@ def load_image(data: bytes) -> Image.Image:
     img = Image.open(io.BytesIO(data))
     img = ImageOps.exif_transpose(img)
     return img.convert("RGB")
+
+
+def face_model_path() -> Path:
+    """Path of the face landmarker model, downloaded from Google on first use and checked against its checksum."""
+    path = MODELS / "face_landmarker.task"
+    if path.exists():
+        return path
+    print(f"Downloading face landmarker model from {FACE_MODEL_URL}")
+    with urllib.request.urlopen(FACE_MODEL_URL, timeout=60) as response:
+        data = response.read()
+    digest = hashlib.sha256(data).hexdigest()
+    if digest != FACE_MODEL_SHA256:
+        raise RuntimeError(f"Face landmarker download has checksum {digest}, expected {FACE_MODEL_SHA256}")
+    MODELS.mkdir(exist_ok=True)
+    partial = path.with_suffix(".part")
+    partial.write_bytes(data)
+    partial.replace(path)
+    return path
 
 
 def _gradient_energy(gray: np.ndarray) -> np.ndarray:
@@ -64,7 +87,7 @@ class Analyzer:
         self._mp = mp
         self.faces = vision.FaceLandmarker.create_from_options(
             vision.FaceLandmarkerOptions(
-                base_options=mpp.BaseOptions(model_asset_path=str(MODELS / "face_landmarker.task")),
+                base_options=mpp.BaseOptions(model_asset_path=str(face_model_path())),
                 output_face_blendshapes=True,
                 num_faces=10,
             )

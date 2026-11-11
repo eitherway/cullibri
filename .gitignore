@@ -7,6 +7,9 @@ testdata/
 # Analysis cache (rebuilt on the next scan)
 data/
 
+# Model files downloaded on first start
+models/
+
 # Python
 .venv/
 __pycache__/

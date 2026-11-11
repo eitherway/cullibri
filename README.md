@@ -4,8 +4,7 @@
   <br>
   Doppelgone
 </h1>
-
-<h4 align="center">Did you ever need to quickly needed to sort through about 3000 pictures from your last vacation? Yes? Then you are like me and this tool is probably for you.</h4>
+<h4 align="center">Did you ever need to quickly sort through about 3000 pictures from your last vacation? Yes? Then you are like me and this tool is probably for you.</h4>
 
 <p align="center">
   <a href="#setup">Setup</a> •
@@ -33,7 +32,7 @@ Immich is my photo db of choice, so it uses their API to get the pictures, view 
 
 4. Open http://127.0.0.1:8765 and you are good to go.
 
-The first start downloads the model weights (about 7 GB in total, most of it the vision model, which only loads when you first press "Ask vision model").
+The first start downloads the model weights (about 7 GB in total, most of it the vision model, which only loads when you first press "Ask vision model"). The face model (4 MB) comes from Google's MediaPipe storage and is checked against a fixed checksum. It is downloaded into `models/`.
 
 ## How the decision process looks like:
 
