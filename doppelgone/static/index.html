@@ -38,7 +38,7 @@
   .grow { flex: 1; }
   .dim { color: var(--dim); }
   input.date, select { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 6px 10px; font: inherit; }
-  select { max-width: min(44ch, 100%); text-overflow: ellipsis; }
+  select { max-width: min(30ch, 100%); text-overflow: ellipsis; }
   input.date { width: 12ch; text-align: center; font-variant-numeric: tabular-nums; }
   input.date.bad { border-color: var(--trash); }
   #cal { position: fixed; z-index: 10; background: var(--bg); border: 1px solid var(--line); border-radius: 17px; padding: 10px; box-shadow: 0 8px 30px #0004; }
@@ -91,9 +91,10 @@
   .bar i { display: block; height: 100%; background: #fff; }
   .info .vlm { color: #accbfa; }
   #position { font-weight: 700; }
-  #track { height: 5px; background: var(--line); }
+  #stats { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  #track { height: 3px; margin-top: -1px; background: var(--line); }
   #track i { display: block; height: 100%; width: 0; background: var(--primary); border-radius: 0 999px 999px 0; transition: width .4s ease; }
-  #trashed { position: absolute; z-index: 5; top: 14px; left: 50%; translate: -50% 0; pointer-events: none; background: #000a; color: #fff; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; border-radius: 999px; padding: 2px 12px; }
+  #trashed { background: var(--subtle); color: var(--primary-text); border: 1px solid var(--subtle-line); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; border-radius: 999px; padding: 2px 12px; }
   #trashed.bump { animation: bump .35s ease; }
   @keyframes bump { 40% { scale: 1.25; } }
   @media (prefers-reduced-motion: reduce) { #track i { transition: none; } #trashed.bump { animation: none; } }
@@ -107,6 +108,8 @@
   <span class="dim" id="kind"></span>
   <select id="source" aria-label="Photo source"></select>
   <span class="grow"></span>
+  <span id="stats" hidden><span id="position"></span><span id="trashed"></span></span>
+  <span class="grow"></span>
   <label>From <input class="date" id="from" placeholder="DD.MM.YYYY" inputmode="numeric" autocomplete="off"></label>
   <label>To <input class="date" id="to" placeholder="DD.MM.YYYY" inputmode="numeric" autocomplete="off"></label>
   <button class="primary" id="scan">Find similar photos</button>
@@ -114,17 +117,14 @@
   <button id="cancel" hidden>Cancel</button>
   <span class="dim" id="status"></span>
 </header>
+<div id="track" hidden role="progressbar" aria-label="Groups done" aria-valuemin="0"><i></i></div>
 
 <main>
   <div id="empty">Pick a date range and press “Find similar photos”.</div>
   <div id="grid" hidden></div>
-  <div id="trashed" hidden></div>
 </main>
 
-<div id="track" hidden role="progressbar" aria-label="Groups done" aria-valuemin="0"><i></i></div>
 <footer id="bar" hidden>
-  <span id="position"></span>
-  <span class="dim" id="left"></span>
   <span class="dim" id="verdict"></span>
   <span class="grow"></span>
   <span class="dim hint">F fullscreen · scroll zooms · drag pans · double-click resets</span>
@@ -239,7 +239,6 @@ function show() {
   $('empty').hidden = !!g;
   progress();
   if (!g) { $('empty').textContent = totalGroups ? `All ${totalGroups} groups done. ${trashedCount} photo${trashedCount === 1 ? '' : 's'} trashed.` : 'No groups of similar photos in this range.'; return; }
-  $('left').textContent = `${g.length} photos in this group`;
   $('verdict').textContent = '';
   $('back').disabled = current === 0;
   $('grid').innerHTML = '';
@@ -300,7 +299,7 @@ function progress() {
   $('track').querySelector('i').style.width = (totalGroups ? done / totalGroups * 100 : 0) + '%';
   $('track').setAttribute('aria-valuemax', totalGroups); $('track').setAttribute('aria-valuenow', done);
   $('position').textContent = `${totalGroups - done} of ${totalGroups} groups left`;
-  $('trashed').hidden = !totalGroups;
+  $('stats').hidden = !totalGroups;
   $('trashed').textContent = `${trashedCount} trashed`;
 }
 // Every photo starts without a mark and can be set to 'keep' or 'trash' (state = null clears it).
