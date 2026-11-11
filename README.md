@@ -20,7 +20,9 @@ No internet connection needed. All models are run 100% locally. This was importa
 
 This project was developed and tested on a Mac. However, it should be cross-platform compatible. `uv` should install the right package for your system. See `vlm.py`. 
 
-Immich is my photo db of choice, so it uses their API to get the pictures, view and delete them. It can however also be used without Immich.
+Immich is my picture database of choice, so it uses their API to get the pictures, view and delete them. It can however also be used without Immich.
+
+![Doppelgone Screenshot](./assets/screenshot-doppelgone.png)
 
 ## Setup
 
