@@ -19,7 +19,11 @@ ROOT = Path(__file__).resolve().parent.parent
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=ROOT / "cull" / "static"), name="static")
 source = None
-job: dict = {"state": "idle", "done": 0, "total": 0, "groups": [], "error": None}
+job: dict = {"state": "idle", "done": 0, "total": 0, "groups": [], "error": None, "cancel": False}
+
+
+class Cancelled(Exception):
+    pass
 
 
 def configure(folder: str | None) -> None:
@@ -46,11 +50,15 @@ class Ids(BaseModel):
 
 def _run(req: ScanRequest) -> None:
     def progress(done: int, total: int) -> None:
+        if job["cancel"]:
+            raise Cancelled
         job.update(done=done, total=total)
 
     try:
         job["groups"] = pipeline.scan(source, req.after, req.before, req.source, progress)
         job["state"] = "done"
+    except Cancelled:  # photos analysed so far stay cached
+        job["state"] = "idle"
     except Exception as e:  # shown in the UI
         job.update(state="error", error=f"{type(e).__name__}: {e}")
 
@@ -72,8 +80,14 @@ def start_scan(req: ScanRequest) -> dict:
         raise HTTPException(409, "A scan is already running")
     if req.source not in {c["id"] for c in source.choices()[0]}:
         raise HTTPException(400, "Unknown photo source")
-    job.update(state="running", done=0, total=0, groups=[], error=None)
+    job.update(state="running", done=0, total=0, groups=[], error=None, cancel=False)
     threading.Thread(target=_run, args=(req,), daemon=True).start()
+    return {"ok": True}
+
+
+@app.post("/api/scan/cancel")
+def cancel_scan() -> dict:
+    job["cancel"] = True  # the scan stops before its next photo
     return {"ok": True}
 
 

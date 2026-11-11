@@ -16,14 +16,14 @@
     --bg: #ffffff; --surface: #fafafa; --subtle: #eef2fe; --line: #d4d4d4; --subtle-line: #8c93db;
     --text: #3d3d3d; --dim: #4a5565; --cell: #f0f0f0;
     --primary: #4250af; --on-primary: #ffffff; --primary-text: #4250af;
-    --keep: #1f9d57; --trash: #d9453a; --vision: #4250af;
+    --keep: #1f9d57; --trash: #d9453a; --vision: #4250af; --pick: #e0a800;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #000000; --surface: #0a0a0a; --subtle: #0f1620; --line: #262626; --subtle-line: #2b3a55;
       --text: #dbdbdb; --dim: #99a1af; --cell: #0a0a0a;
       --primary: #accbfa; --on-primary: #0b1220; --primary-text: #accbfa;
-      --keep: #4ec98a; --trash: #ef6a5c; --vision: #accbfa;
+      --keep: #4ec98a; --trash: #ef6a5c; --vision: #accbfa; --pick: #f5c542;
     }
   }
   * { box-sizing: border-box; }
@@ -36,9 +36,19 @@
   .brand { font-size: 20px; font-weight: 700; color: var(--primary-text); letter-spacing: -.01em; }
   .grow { flex: 1; }
   .dim { color: var(--dim); }
-  input[type=date], select { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 6px 10px; font: inherit; }
+  input.date, select { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 6px 10px; font: inherit; }
   select { max-width: min(44ch, 100%); text-overflow: ellipsis; }
-  input[type=date]:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  input.date { width: 12ch; text-align: center; font-variant-numeric: tabular-nums; }
+  input.date.bad { border-color: var(--trash); }
+  #cal { position: fixed; z-index: 10; background: var(--bg); border: 1px solid var(--line); border-radius: 17px; padding: 10px; box-shadow: 0 8px 30px #0004; }
+  #cal .head { display: flex; align-items: center; justify-content: space-between; font-weight: 700; margin-bottom: 6px; }
+  #cal .days { display: grid; grid-template-columns: repeat(7, 34px); gap: 2px; text-align: center; }
+  #cal .days span { color: var(--dim); font-size: 12px; padding: 4px 0; }
+  #cal button { border: 0; background: none; padding: 6px 0; border-radius: 999px; }
+  #cal .head button { padding: 4px 12px; }
+  #cal button.today { box-shadow: inset 0 0 0 1px var(--subtle-line); }
+  #cal button.sel, #cal button.sel:hover { background: var(--primary); color: var(--on-primary); }
+  input.date:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
   button { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 7px 16px; font: inherit; font-weight: 500; cursor: pointer; }
   button:hover:not(:disabled) { background: var(--subtle); border-color: var(--subtle-line); }
   button:disabled { opacity: .45; cursor: default; }
@@ -54,7 +64,7 @@
   #empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--dim); padding: 24px; font-size: 17px; }
   #grid { position: absolute; inset: 0; display: grid; gap: 8px; padding: 8px; }
   .cell { position: relative; overflow: hidden; background: var(--cell); border: 3px solid transparent; border-radius: 17px; cursor: grab; user-select: none; color: #fff; }
-  .cell.pick, .cell.keep { border-color: var(--keep); }
+  .cell.pick { border-color: var(--pick); }
   .cell.vision { outline: 3px solid var(--vision); outline-offset: 1px; }
   .cell.trash { border-color: var(--trash); }
   .cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transform-origin: 0 0; pointer-events: none; }
@@ -64,10 +74,13 @@
   .cell.hide { display: none; }
   .fs, .fs:hover:not(:disabled) { left: 48px; background: #000a; color: #fff; border: 0; padding: 2px 10px; opacity: 0; }
   .cell:hover .fs, .cell.solo .fs { opacity: 1; }
-  .state { right: 10px; background: var(--keep); color: #fff; }
-  .state:empty, .eye { display: none; }
-  .cell.trash .state { background: var(--trash); }
-  .cell.vision .eye { display: block; right: 10px; top: 38px; background: var(--vision); color: var(--on-primary); }
+  .tags { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .tags .tag { position: static; }
+  .state { background: #000a; color: #5fe39d; }
+  .cell.trash .state { background: var(--trash); color: #fff; }
+  .rec, .eye { display: none; }
+  .cell.pick .rec { display: block; background: var(--pick); color: #2a1f00; }
+  .cell.vision .eye { display: block; background: var(--vision); color: var(--on-primary); }
   .info { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 12px 10px; background: linear-gradient(transparent, #000d); font-size: 12.5px; pointer-events: none; }
   .info .dim { color: #c4c8d0; }
   .info b { font-size: 16px; }
@@ -85,10 +98,11 @@
   <span class="dim" id="kind"></span>
   <select id="source" aria-label="Photo source"></select>
   <span class="grow"></span>
-  <label>From <input type="date" id="from"></label>
-  <label>To <input type="date" id="to"></label>
+  <label>From <input class="date" id="from" placeholder="DD.MM.YYYY" inputmode="numeric" autocomplete="off"></label>
+  <label>To <input class="date" id="to" placeholder="DD.MM.YYYY" inputmode="numeric" autocomplete="off"></label>
   <button class="primary" id="scan">Find similar photos</button>
   <progress id="progress" hidden></progress>
+  <button id="cancel" hidden>Cancel</button>
   <span class="dim" id="status"></span>
 </header>
 
@@ -101,18 +115,21 @@
   <span id="position"></span>
   <span class="dim" id="verdict"></span>
   <span class="grow"></span>
-  <span class="dim hint">Click, number key or Delete marks for trash · K keeps · F fullscreen · scroll zooms · drag pans · double-click resets</span>
+  <span class="dim hint">F fullscreen · scroll zooms · drag pans · double-click resets</span>
   <button id="back">Back<kbd>←</kbd></button>
+  <button id="keepBtn">Keep<kbd>K</kbd></button>
+  <button id="trashBtn">Trash<kbd>T</kbd></button>
   <button id="explain">Ask vision model<kbd>E</kbd></button>
   <button id="accept">Trash the rest<kbd>A</kbd></button>
   <button id="skip">Skip<kbd>→</kbd></button>
   <button class="danger" id="apply">Trash marked<kbd>Enter</kbd></button>
 </footer>
 <div id="toast"></div>
+<div id="cal" hidden></div>
 
 <script>
 const $ = id => document.getElementById(id);
-let groups = [], current = 0, marked = new Set(), kept = new Set(), view = { s: 1, x: 0, y: 0 }, full = false, aspect = 0.75, solo = null, mouse = { x: -1, y: -1 };
+let groups = [], current = 0, marked = new Set(), view = { s: 1, x: 0, y: 0 }, full = false, aspect = 0.75, solo = null, mouse = { x: -1, y: -1 }, lastHover = null;
 
 const api = async (path, body) => {
   const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);
@@ -122,13 +139,65 @@ const api = async (path, body) => {
 const toast = msg => { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = 'none', 3500); };
 const isoDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+// ---- dates: shown as DD.MM.YYYY, handled internally as YYYY-MM-DD ----
+const showDay = iso => iso.split('-').reverse().join('.');
+function parseDay(text) {  // accepts 1.9.26, 01.09.2026 and 2026-09-01; returns YYYY-MM-DD or null
+  let m = text.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})$/), y, mo, d;
+  if (m) [d, mo, y] = [+m[1], +m[2], m[3].length === 2 ? 2000 + +m[3] : +m[3]];
+  else if ((m = text.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/))) [y, mo, d] = [+m[1], +m[2], +m[3]];
+  else return null;
+  const date = new Date(y, mo - 1, d);
+  return date.getFullYear() === y && date.getMonth() === mo - 1 && date.getDate() === d ? isoDay(date) : null;
+}
+// Small calendar under the focused date field, weeks starting on Monday.
+let calFor = null, calMonth = null;
+function drawCal() {
+  const y = calMonth.getFullYear(), m = calMonth.getMonth(), sel = parseDay(calFor.value), now = isoDay(new Date());
+  const lead = (new Date(y, m, 1).getDay() + 6) % 7, count = new Date(y, m + 1, 0).getDate();
+  let html = `<div class="head"><button data-step="-1" aria-label="Previous month">‹</button><span>${calMonth.toLocaleString('en-GB', { month: 'long', year: 'numeric' })}</span><button data-step="1" aria-label="Next month">›</button></div><div class="days">`;
+  html += ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => `<span>${d}</span>`).join('') + '<span></span>'.repeat(lead);
+  for (let d = 1; d <= count; d++) {
+    const iso = isoDay(new Date(y, m, d));
+    html += `<button data-day="${iso}" class="${iso === sel ? 'sel' : iso === now ? 'today' : ''}">${d}</button>`;
+  }
+  $('cal').innerHTML = html + '</div>';
+}
+function openCal(input) {
+  calFor = input;
+  const iso = parseDay(input.value) || isoDay(new Date());
+  calMonth = new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, 1);
+  drawCal();
+  const r = input.getBoundingClientRect();
+  $('cal').hidden = false;
+  $('cal').style.top = r.bottom + 6 + 'px';
+  $('cal').style.left = Math.max(8, Math.min(r.left, innerWidth - $('cal').offsetWidth - 8)) + 'px';
+}
+const closeCal = () => { $('cal').hidden = true; calFor = null; };
+document.querySelectorAll('input.date').forEach(input => {
+  input.addEventListener('focus', () => openCal(input));
+  input.addEventListener('blur', closeCal);
+  input.addEventListener('input', () => { input.classList.remove('bad'); const iso = parseDay(input.value); if (iso && calFor) { calMonth = new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, 1); drawCal(); } });
+  input.addEventListener('change', () => { const iso = parseDay(input.value); input.classList.toggle('bad', !iso); if (iso) input.value = showDay(iso); });
+  input.addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === 'Enter') { closeCal(); input.blur(); } });
+});
+$('cal').addEventListener('mousedown', e => e.preventDefault());  // keep the date field focused while clicking in the calendar
+$('cal').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.step) { calMonth.setMonth(calMonth.getMonth() + +b.dataset.step); return drawCal(); }
+  calFor.value = showDay(b.dataset.day); calFor.classList.remove('bad');
+  const input = calFor; closeCal(); input.blur();
+});
+addEventListener('mousedown', e => { if (calFor && !e.target.closest('#cal') && e.target !== calFor) closeCal(); });
+
 // ---- scanning ----
 async function scan() {
-  const after = new Date($('from').value + 'T00:00:00'), before = new Date($('to').value + 'T23:59:59');
-  if (isNaN(after) || isNaN(before)) return toast('Pick both dates first');
-  localStorage.setItem('range', JSON.stringify([$('from').value, $('to').value]));
+  const from = parseDay($('from').value), to = parseDay($('to').value);
+  if (!from || !to) return toast('Enter both dates as DD.MM.YYYY');
+  if (from > to) return toast('“From” is after “To”');
+  const after = new Date(from + 'T00:00:00'), before = new Date(to + 'T23:59:59');
+  localStorage.setItem('range', JSON.stringify([from, to]));
   localStorage.setItem('source', $('source').value);
-  $('scan').disabled = true; $('progress').hidden = false; $('progress').removeAttribute('value');
+  scanStarted(); $('progress').removeAttribute('value');
   $('status').textContent = 'Loading models…';
   try { await api('/api/scan', { after: after.toISOString(), before: before.toISOString(), source: $('source').value }); poll(); }
   catch (e) { scanEnded(); toast(e.message); }
@@ -136,23 +205,25 @@ async function scan() {
 async function poll() {
   const job = await api('/api/scan');
   if (job.state === 'running') {
-    if (job.total) { $('progress').max = job.total; $('progress').value = job.done; $('status').textContent = `Analysing ${job.done} of ${job.total}`; }
+    if (job.total && !$('cancel').disabled) { $('progress').max = job.total; $('progress').value = job.done; $('status').textContent = `Analysing ${job.done} of ${job.total}`; }
     return setTimeout(poll, 500);
   }
   scanEnded();
   if (job.state === 'error') return toast('Scan failed: ' + job.error);
-  if (job.state !== 'done') return;
+  if (job.state !== 'done') return toast('Scan cancelled. Photos analysed so far are cached.');
   groups = job.groups.filter(g => g.length > 1);
   current = 0;
   $('status').textContent = `${job.total} photos, ${groups.length} groups`;
   show();
 }
-function scanEnded() { $('scan').disabled = false; $('progress').hidden = true; $('status').textContent = ''; }
+function scanStarted() { $('scan').disabled = true; $('progress').hidden = $('cancel').hidden = false; $('cancel').disabled = false; }
+function scanEnded() { $('scan').disabled = false; $('progress').hidden = $('cancel').hidden = true; $('status').textContent = ''; }
+async function cancelScan() { $('cancel').disabled = true; $('status').textContent = 'Cancelling…'; await api('/api/scan/cancel', {}); }
 
 // ---- group view ----
 function show() {
   const g = groups[current];
-  marked = new Set(); kept = new Set(); view = { s: 1, x: 0, y: 0 }; full = false; solo = null;
+  marked = new Set(); lastHover = null; view = { s: 1, x: 0, y: 0 }; full = false; solo = null;
   $('grid').hidden = $('bar').hidden = !g;
   $('empty').hidden = !!g;
   if (!g) { $('empty').textContent = groups.length ? 'All groups done.' : 'No groups of similar photos in this range.'; return; }
@@ -167,7 +238,7 @@ function show() {
     const notes = p.notes.length ? ' · ' + p.notes.join(' · ') : '';
     cell.innerHTML = `<img draggable="false" src="/api/img/${encodeURIComponent(p.id)}?size=preview">
       <span class="tag num">${i + 1}</span><button class="tag fs" title="Fullscreen (F)">⤢</button>
-      <span class="tag state">${p.pick ? 'Recommended' : ''}</span><span class="tag eye">Vision pick</span>
+      <div class="tags"><span class="tag state">Keep</span><span class="tag rec">Recommended</span><span class="tag eye">Vision pick</span></div>
       <div class="info"><b>${Math.round(p.sharpness_rel * 100)}%</b> sharpness<span class="bar"><i style="width:${Math.round(p.sharpness_rel * 100)}%"></i></span>
         <div>score ${Math.round(p.score)} · aesthetic ${p.aesthetic.toFixed(1)}${notes}</div>
         <div class="vlm"></div><div class="dim">${p.name}</div></div>`;
@@ -211,21 +282,18 @@ function applyView() {
   }
   document.querySelectorAll('.cell img').forEach(img => img.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.s})`);
 }
-// Each photo is unmarked, marked for trash, or marked to keep. Marking one way clears the other.
-function setMark(i, state) {
+// Every photo is either kept (the default) or marked for trash.
+function setMark(i, trash) {
   const cell = $('grid').children[i]; if (!cell) return;
-  marked.delete(i); kept.delete(i);
-  if (state === 'trash') marked.add(i);
-  if (state === 'keep') kept.add(i);
-  cell.classList.toggle('trash', state === 'trash');
-  cell.classList.toggle('keep', state === 'keep');
-  cell.querySelector('.state').textContent = state === 'trash' ? 'Trash' : state === 'keep' ? 'Keep' : groups[current][i].pick ? 'Recommended' : '';
+  trash ? marked.add(i) : marked.delete(i);
+  cell.classList.toggle('trash', trash);
+  cell.querySelector('.state').textContent = trash ? 'Trash' : 'Keep';
 }
-const toggle = i => setMark(i, marked.has(i) ? null : 'trash');
-const toggleKeep = i => setMark(i, kept.has(i) ? null : 'keep');
-// Trash everything except the photos marked to keep; with none marked, keep only the recommended one.
+const toggle = i => setMark(i, !marked.has(i));
+const keep = i => setMark(i, false), trash = i => setMark(i, true);
+// Trash everything except the recommended photo.
 function accept() {
-  groups[current].forEach((p, i) => { if (!kept.has(i)) setMark(i, (kept.size ? false : p.pick) ? null : 'trash'); });
+  groups[current].forEach((p, i) => setMark(i, !p.pick));
 }
 async function apply() {
   const g = groups[current];
@@ -282,7 +350,13 @@ grid.addEventListener('pointerup', () => { if (drag && !drag.moved) toggle(drag.
 grid.addEventListener('dblclick', () => { view = { s: 1, x: 0, y: 0 }; applyView(); });
 addEventListener('resize', layout);
 // The photo under the mouse is looked up when F is pressed, so it is right even if the group changed under a resting mouse.
-addEventListener('pointermove', e => { mouse = { x: e.clientX, y: e.clientY }; });
+addEventListener('pointermove', e => { mouse = { x: e.clientX, y: e.clientY }; const c = e.target.closest?.('.cell'); if (c) lastHover = +c.dataset.i; });
+// The Keep and Trash buttons act on the fullscreen photo, or else on the photo the mouse was over last.
+function viaButton(action) {
+  const i = solo ?? lastHover;
+  if (i == null) return toast('Point at a photo first');
+  action(i);
+}
 const underMouse = () => { const i = +(document.elementFromPoint(mouse.x, mouse.y)?.closest('.cell')?.dataset.i ?? NaN); return isNaN(i) ? null : i; };
 
 addEventListener('keydown', e => {
@@ -292,8 +366,8 @@ addEventListener('keydown', e => {
   else if (e.key.toLowerCase() === 'f') setSolo(solo == null ? underMouse() ?? 0 : null);
   else if (e.key === 'Escape' && solo != null) setSolo(null);
   else if (e.key === ' ' && solo != null) toggle(solo);
-  else if (e.key === 'Backspace' || e.key === 'Delete') toggle(solo ?? underMouse());
-  else if (e.key.toLowerCase() === 'k') toggleKeep(solo ?? underMouse());
+  else if (e.key === 'Backspace' || e.key === 'Delete' || e.key.toLowerCase() === 't') trash(solo ?? underMouse());
+  else if (e.key.toLowerCase() === 'k') keep(solo ?? underMouse());
   else if (e.key === 'ArrowRight') solo != null ? setSolo(solo + 1) : next();
   else if (e.key === 'ArrowLeft') solo != null ? setSolo(solo - 1) : back();
   else if (e.key.toLowerCase() === 'a') accept();
@@ -301,20 +375,21 @@ addEventListener('keydown', e => {
   else return;
   e.preventDefault();
 });
-$('scan').onclick = scan; $('apply').onclick = apply; $('skip').onclick = next; $('back').onclick = back;
+$('keepBtn').onclick = () => viaButton(keep); $('trashBtn').onclick = () => viaButton(trash);
+$('scan').onclick = scan; $('cancel').onclick = cancelScan; $('apply').onclick = apply; $('skip').onclick = next; $('back').onclick = back;
 $('accept').onclick = accept; $('explain').onclick = explain;
 
 // ---- start ----
 const saved = JSON.parse(localStorage.getItem('range') || 'null'), today = new Date();
-$('to').value = saved?.[1] || isoDay(today);
-$('from').value = saved?.[0] || isoDay(new Date(today - 14 * 864e5));
+$('to').value = showDay(saved?.[1] || isoDay(today));
+$('from').value = showDay(saved?.[0] || isoDay(new Date(today - 14 * 864e5)));
 api('/api/info').then(info => {
   $('kind').textContent = info.kind;
   info.sources.forEach(s => $('source').add(new Option(s.label, s.id)));
   const last = localStorage.getItem('source');
   $('source').value = info.sources.some(s => s.id === last) ? last : info.default;
 });
-api('/api/scan').then(job => { if (job.state === 'running') { $('scan').disabled = true; $('progress').hidden = false; poll(); } });
+api('/api/scan').then(job => { if (job.state === 'running') { scanStarted(); poll(); } });
 </script>
 </body>
 </html>
