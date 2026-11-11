@@ -67,6 +67,7 @@
   .cell { position: relative; overflow: hidden; background: var(--cell); border: 3px solid transparent; border-radius: 17px; cursor: grab; user-select: none; color: #fff; }
   .cell.pick { border-color: var(--pick); }
   .cell.vision { outline: 3px solid var(--vision); outline-offset: 1px; }
+  .cell.keep { border-color: var(--keep); }
   .cell.trash { border-color: var(--trash); }
   .cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transform-origin: 0 0; pointer-events: none; }
   .cell.trash:not(.solo) img { opacity: .5; }
@@ -77,7 +78,8 @@
   .cell:hover .fs, .cell.solo .fs { opacity: 1; }
   .tags { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
   .tags .tag { position: static; }
-  .state { background: #000a; color: #5fe39d; }
+  .state { display: none; background: #000a; color: #5fe39d; }
+  .cell.keep .state, .cell.trash .state { display: block; }
   .cell.trash .state { background: var(--trash); color: #fff; }
   .rec, .eye { display: none; }
   .cell.pick .rec { display: block; background: var(--pick); color: #2a1f00; }
@@ -139,7 +141,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-let groups = [], current = 0, totalGroups = 0, trashedCount = 0, marked = new Set(), view = { s: 1, x: 0, y: 0 }, full = false, aspect = 0.75, solo = null, mouse = { x: -1, y: -1 }, lastHover = null;
+let groups = [], current = 0, totalGroups = 0, trashedCount = 0, marks = new Map(), view = { s: 1, x: 0, y: 0 }, full = false, aspect = 0.75, solo = null, mouse = { x: -1, y: -1 }, lastHover = null;
 
 const api = async (path, body) => {
   const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);
@@ -232,7 +234,7 @@ async function cancelScan() { $('cancel').disabled = true; $('status').textConte
 // ---- group view ----
 function show() {
   const g = groups[current];
-  marked = new Set(); lastHover = null; view = { s: 1, x: 0, y: 0 }; full = false; solo = null;
+  marks = new Map(); lastHover = null; view = { s: 1, x: 0, y: 0 }; full = false; solo = null;
   $('grid').hidden = $('bar').hidden = !g;
   $('empty').hidden = !!g;
   progress();
@@ -247,7 +249,7 @@ function show() {
     cell.dataset.i = i;
     cell.innerHTML = `<img draggable="false" src="/api/img/${encodeURIComponent(p.id)}?size=preview">
       <span class="tag num">${i + 1}</span><button class="tag fs" title="Fullscreen (F)">⤢</button>
-      <div class="tags"><span class="tag state">Keep</span><span class="tag rec">Recommended</span><span class="tag eye">Vision pick</span></div>
+      <div class="tags"><span class="tag state"></span><span class="tag rec">Recommended</span><span class="tag eye">Vision pick</span></div>
       <div class="info"><b>${Math.round(p.sharpness_rel * 100)}%</b> sharpness<span class="bar"><i style="width:${Math.round(p.sharpness_rel * 100)}%"></i></span>
         <div>${p.notes.join(' · ')}</div>
         <div class="vlm"></div><div class="dim">${p.name}</div></div>`;
@@ -301,24 +303,27 @@ function progress() {
   $('trashed').hidden = !totalGroups;
   $('trashed').textContent = `${trashedCount} trashed`;
 }
-// Every photo is either kept (the default) or marked for trash.
-function setMark(i, trash) {
+// Every photo starts without a mark and can be set to 'keep' or 'trash' (state = null clears it).
+function setMark(i, state) {
   const cell = $('grid').children[i]; if (!cell) return;
-  trash ? marked.add(i) : marked.delete(i);
-  cell.classList.toggle('trash', trash);
-  cell.querySelector('.state').textContent = trash ? 'Trash' : 'Keep';
+  state ? marks.set(i, state) : marks.delete(i);
+  cell.classList.toggle('keep', state === 'keep'); cell.classList.toggle('trash', state === 'trash');
+  cell.querySelector('.state').textContent = state === 'keep' ? 'Keep' : state === 'trash' ? 'Trash' : '';
 }
-const toggle = i => setMark(i, !marked.has(i));
-const keep = i => setMark(i, false), trash = i => setMark(i, true);
-// Trash everything except the recommended photo.
+// Clicking a photo cycles no mark → trash → keep → no mark; the Keep and Trash actions set their mark, or clear it when it is already set.
+const toggle = i => setMark(i, { undefined: 'trash', trash: 'keep', keep: null }[marks.get(i)]);
+const keep = i => setMark(i, marks.get(i) === 'keep' ? null : 'keep'), trash = i => setMark(i, marks.get(i) === 'trash' ? null : 'trash');
+// Trash every photo that is not set to keep. If none is, the recommended photo is kept.
 function accept() {
-  groups[current].forEach((p, i) => setMark(i, !p.pick));
+  const kept = [...marks.values()].includes('keep');
+  groups[current].forEach((p, i) => { if (kept ? marks.get(i) !== 'keep' : !p.pick) setMark(i, 'trash'); else if (!kept) setMark(i, 'keep'); });
 }
 async function apply() {
   const g = groups[current];
-  if (!marked.size) return next();
-  if (marked.size === g.length && !confirm('This trashes every photo in the group. Continue?')) return;
-  const ids = [...marked].map(i => g[i].id);
+  const doomed = [...marks].filter(([, state]) => state === 'trash').map(([i]) => i);
+  if (!doomed.length) return next();
+  if (doomed.length === g.length && !confirm('This trashes every photo in the group. Continue?')) return;
+  const ids = doomed.map(i => g[i].id);
   try {
     const r = await api('/api/trash', { ids });
     toast(`Moved ${r.trashed} photo${r.trashed > 1 ? 's' : ''} to trash`);
