@@ -76,7 +76,7 @@ class Analyzer:
         from mediapipe.tasks import python as mpp
         from mediapipe.tasks.python import vision
 
-        self.device = "mps" if torch.backends.mps.is_available() else "cpu"
+        self.device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
         # DINOv2 embeddings decide which photos show the same motif.
         from transformers import AutoImageProcessor, AutoModel
