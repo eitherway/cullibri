@@ -1,0 +1,20 @@
+[project]
+name = "immich-cull"
+version = "0.1.0"
+description = "Pick the best of similar photos in Immich, using local models only"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "httpx>=0.27",
+    "pillow>=10",
+    "numpy",
+    "opencv-python-headless",
+    "torch",
+    "open_clip_torch",
+    "mediapipe",
+    "mlx-vlm",
+]
+
+[tool.uv]
+package = false

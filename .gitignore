@@ -1,0 +1,18 @@
+# Secrets: holds the Immich API key
+config.toml
+
+# Private photos used for testing
+testdata/
+
+# Analysis cache (rebuilt on the next scan)
+data/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Local tooling
+.claude/settings.local.json
+.DS_Store
+.idea

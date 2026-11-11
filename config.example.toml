@@ -1,0 +1,10 @@
+# Copy to config.toml and fill in the API key.
+# Create the key in Immich: Account Settings -> API Keys.
+# Permissions needed: asset.read, asset.view, asset.delete
+# Optional: library.read (admin account) to choose between external libraries in the app
+
+[immich]
+url = "http://localhost:2283"
+api_key = ""
+# Default photo source: photos whose path inside Immich starts with this.
+path_prefix = "/data/new"

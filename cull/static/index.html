@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cull</title>
+<style>
+  /* Google Sans is served from this app's own folder, so no request leaves the machine. */
+  @font-face { font-family: "Google Sans"; font-weight: 400 700; font-display: swap; src: url(/static/fonts/google-sans-latin.woff2) format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: "Google Sans"; font-weight: 400 700; font-display: swap; src: url(/static/fonts/google-sans-latin-ext.woff2) format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  /* Colours, radii and type follow the look of immich.app (light and dark). */
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff; --surface: #fafafa; --subtle: #eef2fe; --line: #d4d4d4; --subtle-line: #8c93db;
+    --text: #3d3d3d; --dim: #4a5565; --cell: #f0f0f0;
+    --primary: #4250af; --on-primary: #ffffff; --primary-text: #4250af;
+    --keep: #1f9d57; --trash: #d9453a; --vision: #4250af;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000; --surface: #0a0a0a; --subtle: #0f1620; --line: #262626; --subtle-line: #2b3a55;
+      --text: #dbdbdb; --dim: #99a1af; --cell: #0a0a0a;
+      --primary: #accbfa; --on-primary: #0b1220; --primary-text: #accbfa;
+      --keep: #4ec98a; --trash: #ef6a5c; --vision: #accbfa;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 15px/1.4 "Google Sans", system-ui, -apple-system, "Segoe UI", sans-serif; display: flex; flex-direction: column; }
+  header, footer { background: var(--bg); padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  header { border-bottom: 1px solid var(--line); }
+  footer { border-top: 1px solid var(--line); }
+  .brand { font-size: 20px; font-weight: 700; color: var(--primary-text); letter-spacing: -.01em; }
+  .grow { flex: 1; }
+  .dim { color: var(--dim); }
+  input[type=date], select { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 6px 10px; font: inherit; }
+  select { max-width: min(44ch, 100%); text-overflow: ellipsis; }
+  input[type=date]:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  button { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 7px 16px; font: inherit; font-weight: 500; cursor: pointer; }
+  button:hover:not(:disabled) { background: var(--subtle); border-color: var(--subtle-line); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary, button.primary:hover:not(:disabled) { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+  button.danger, button.danger:hover:not(:disabled) { background: var(--trash); border-color: var(--trash); color: #fff; }
+  button.primary:hover:not(:disabled), button.danger:hover:not(:disabled) { filter: brightness(1.08); }
+  kbd { font: 11px ui-monospace, monospace; border: 1px solid currentColor; opacity: .7; border-radius: 6px; padding: 0 5px; margin-left: 8px; }
+  progress { width: 220px; accent-color: var(--primary); }
+
+  main { flex: 1; min-height: 55vh; position: relative; }
+  @media (max-width: 1700px) { .hint { display: none; } }
+  @media (max-width: 1100px) { #kind { display: none; } }
+  #empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--dim); padding: 24px; font-size: 17px; }
+  #grid { position: absolute; inset: 0; display: grid; gap: 8px; padding: 8px; }
+  .cell { position: relative; overflow: hidden; background: var(--cell); border: 3px solid transparent; border-radius: 17px; cursor: grab; user-select: none; color: #fff; }
+  .cell.pick, .cell.keep { border-color: var(--keep); }
+  .cell.vision { outline: 3px solid var(--vision); outline-offset: 1px; }
+  .cell.trash { border-color: var(--trash); }
+  .cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transform-origin: 0 0; pointer-events: none; }
+  .cell.trash:not(.solo) img { opacity: .5; }
+  .tag { position: absolute; top: 10px; padding: 2px 10px; border-radius: 999px; font-weight: 600; font-size: 12px; }
+  .num { left: 10px; background: #000a; }
+  .cell.hide { display: none; }
+  .fs, .fs:hover:not(:disabled) { left: 48px; background: #000a; color: #fff; border: 0; padding: 2px 10px; opacity: 0; }
+  .cell:hover .fs, .cell.solo .fs { opacity: 1; }
+  .state { right: 10px; background: var(--keep); color: #fff; }
+  .state:empty, .eye { display: none; }
+  .cell.trash .state { background: var(--trash); }
+  .cell.vision .eye { display: block; right: 10px; top: 38px; background: var(--vision); color: var(--on-primary); }
+  .info { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 12px 10px; background: linear-gradient(transparent, #000d); font-size: 12.5px; pointer-events: none; }
+  .info .dim { color: #c4c8d0; }
+  .info b { font-size: 16px; }
+  .bar { display: inline-block; width: 90px; height: 6px; margin-left: 8px; border-radius: 999px; background: #fff3; vertical-align: middle; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: #fff; }
+  .info .vlm { color: #accbfa; }
+  #position { font-weight: 700; }
+  #verdict { max-width: 60ch; }
+  #toast { position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%); background: var(--subtle); color: var(--text); border: 1px solid var(--subtle-line); padding: 9px 18px; border-radius: 999px; display: none; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">Cull</span>
+  <span class="dim" id="kind"></span>
+  <select id="source" aria-label="Photo source"></select>
+  <span class="grow"></span>
+  <label>From <input type="date" id="from"></label>
+  <label>To <input type="date" id="to"></label>
+  <button class="primary" id="scan">Find similar photos</button>
+  <progress id="progress" hidden></progress>
+  <span class="dim" id="status"></span>
+</header>
+
+<main>
+  <div id="empty">Pick a date range and press “Find similar photos”.</div>
+  <div id="grid" hidden></div>
+</main>
+
+<footer id="bar" hidden>
+  <span id="position"></span>
+  <span class="dim" id="verdict"></span>
+  <span class="grow"></span>
+  <span class="dim hint">Click, number key or Delete marks for trash · K keeps · F fullscreen · scroll zooms · drag pans · double-click resets</span>
+  <button id="back">Back<kbd>←</kbd></button>
+  <button id="explain">Ask vision model<kbd>E</kbd></button>
+  <button id="accept">Trash the rest<kbd>A</kbd></button>
+  <button id="skip">Skip<kbd>→</kbd></button>
+  <button class="danger" id="apply">Trash marked<kbd>Enter</kbd></button>
+</footer>
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let groups = [], current = 0, marked = new Set(), kept = new Set(), view = { s: 1, x: 0, y: 0 }, full = false, aspect = 0.75, solo = null, mouse = { x: -1, y: -1 };
+
+const api = async (path, body) => {
+  const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+  return r.json();
+};
+const toast = msg => { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = 'none', 3500); };
+const isoDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// ---- scanning ----
+async function scan() {
+  const after = new Date($('from').value + 'T00:00:00'), before = new Date($('to').value + 'T23:59:59');
+  if (isNaN(after) || isNaN(before)) return toast('Pick both dates first');
+  localStorage.setItem('range', JSON.stringify([$('from').value, $('to').value]));
+  localStorage.setItem('source', $('source').value);
+  $('scan').disabled = true; $('progress').hidden = false; $('progress').removeAttribute('value');
+  $('status').textContent = 'Loading models…';
+  try { await api('/api/scan', { after: after.toISOString(), before: before.toISOString(), source: $('source').value }); poll(); }
+  catch (e) { scanEnded(); toast(e.message); }
+}
+async function poll() {
+  const job = await api('/api/scan');
+  if (job.state === 'running') {
+    if (job.total) { $('progress').max = job.total; $('progress').value = job.done; $('status').textContent = `Analysing ${job.done} of ${job.total}`; }
+    return setTimeout(poll, 500);
+  }
+  scanEnded();
+  if (job.state === 'error') return toast('Scan failed: ' + job.error);
+  if (job.state !== 'done') return;
+  groups = job.groups.filter(g => g.length > 1);
+  current = 0;
+  $('status').textContent = `${job.total} photos, ${groups.length} groups`;
+  show();
+}
+function scanEnded() { $('scan').disabled = false; $('progress').hidden = true; $('status').textContent = ''; }
+
+// ---- group view ----
+function show() {
+  const g = groups[current];
+  marked = new Set(); kept = new Set(); view = { s: 1, x: 0, y: 0 }; full = false; solo = null;
+  $('grid').hidden = $('bar').hidden = !g;
+  $('empty').hidden = !!g;
+  if (!g) { $('empty').textContent = groups.length ? 'All groups done.' : 'No groups of similar photos in this range.'; return; }
+  $('position').textContent = `Group ${current + 1} of ${groups.length} · ${g.length} photos`;
+  $('verdict').textContent = '';
+  $('back').disabled = current === 0;
+  $('grid').innerHTML = '';
+  g.forEach((p, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell' + (p.pick ? ' pick' : '');
+    cell.dataset.i = i;
+    const notes = p.notes.length ? ' · ' + p.notes.join(' · ') : '';
+    cell.innerHTML = `<img draggable="false" src="/api/img/${encodeURIComponent(p.id)}?size=preview">
+      <span class="tag num">${i + 1}</span><button class="tag fs" title="Fullscreen (F)">⤢</button>
+      <span class="tag state">${p.pick ? 'Recommended' : ''}</span><span class="tag eye">Vision pick</span>
+      <div class="info"><b>${Math.round(p.sharpness_rel * 100)}%</b> sharpness<span class="bar"><i style="width:${Math.round(p.sharpness_rel * 100)}%"></i></span>
+        <div>score ${Math.round(p.score)} · aesthetic ${p.aesthetic.toFixed(1)}${notes}</div>
+        <div class="vlm"></div><div class="dim">${p.name}</div></div>`;
+    cell.querySelector('img').onload = e => { if (i === 0) { aspect = e.target.naturalWidth / e.target.naturalHeight; layout(); } };
+    $('grid').append(cell);
+  });
+  layout();
+}
+function layout() {
+  const n = groups[current]?.length; if (!n) return;
+  const { width: W, height: H } = $('grid').getBoundingClientRect();
+  if (solo != null) { $('grid').style.gridTemplateColumns = $('grid').style.gridTemplateRows = '1fr'; return; }
+  let best = 1, bestFit = 0;
+  for (let c = 1; c <= n; c++) {
+    const fit = Math.min(W / c, (H / Math.ceil(n / c)) * aspect);
+    if (fit > bestFit) { bestFit = fit; best = c; }
+  }
+  $('grid').style.gridTemplateColumns = `repeat(${best}, 1fr)`;
+  $('grid').style.gridTemplateRows = `repeat(${Math.ceil(n / best)}, 1fr)`;
+}
+function loadFull(i) {
+  const img = $('grid').children[i]?.querySelector('img');
+  if (!img || img.dataset.full) return;
+  img.dataset.full = 1;
+  const hi = new Image(); hi.src = `/api/img/${encodeURIComponent(groups[current][i].id)}?size=full`;
+  hi.onload = () => { img.src = hi.src; };
+}
+// Fullscreen: show one photo of the group alone (i = null returns to the side-by-side view).
+function setSolo(i) {
+  const n = groups[current]?.length; if (!n) return;
+  solo = i == null ? null : (i + n) % n;
+  [...$('grid').children].forEach((c, k) => { c.classList.toggle('hide', solo != null && k !== solo); c.classList.toggle('solo', k === solo); });
+  if (solo != null) loadFull(solo);
+  view = { s: 1, x: 0, y: 0 };
+  layout(); applyView();
+}
+function applyView() {
+  if (view.s > 1.5 && !full) {  // load full resolution once the user zooms in
+    full = true;
+    groups[current].forEach((_, i) => loadFull(i));
+  }
+  document.querySelectorAll('.cell img').forEach(img => img.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.s})`);
+}
+// Each photo is unmarked, marked for trash, or marked to keep. Marking one way clears the other.
+function setMark(i, state) {
+  const cell = $('grid').children[i]; if (!cell) return;
+  marked.delete(i); kept.delete(i);
+  if (state === 'trash') marked.add(i);
+  if (state === 'keep') kept.add(i);
+  cell.classList.toggle('trash', state === 'trash');
+  cell.classList.toggle('keep', state === 'keep');
+  cell.querySelector('.state').textContent = state === 'trash' ? 'Trash' : state === 'keep' ? 'Keep' : groups[current][i].pick ? 'Recommended' : '';
+}
+const toggle = i => setMark(i, marked.has(i) ? null : 'trash');
+const toggleKeep = i => setMark(i, kept.has(i) ? null : 'keep');
+// Trash everything except the photos marked to keep; with none marked, keep only the recommended one.
+function accept() {
+  groups[current].forEach((p, i) => { if (!kept.has(i)) setMark(i, (kept.size ? false : p.pick) ? null : 'trash'); });
+}
+async function apply() {
+  const g = groups[current];
+  if (!marked.size) return next();
+  if (marked.size === g.length && !confirm('This trashes every photo in the group. Continue?')) return;
+  const ids = [...marked].map(i => g[i].id);
+  try {
+    const r = await api('/api/trash', { ids });
+    toast(`Moved ${r.trashed} photo${r.trashed > 1 ? 's' : ''} to trash`);
+    groups.splice(current, 1);
+    show();
+  } catch (e) { toast('Trash failed: ' + e.message); }
+}
+function next() { if (current < groups.length) { current++; show(); } }
+function back() { if (current > 0) { current--; show(); } }
+async function explain() {
+  const g = groups[current], at = current;
+  $('explain').disabled = true; $('verdict').textContent = 'Vision model is comparing… (first use loads the model)';
+  try {
+    const r = await api('/api/explain', { ids: g.map(p => p.id) });
+    if (at !== current || g !== groups[current]) return;
+    $('verdict').textContent = (r.best != null ? `Vision model prefers ${r.best + 1}: ` : 'Vision model: ') + r.reason;
+    [...$('grid').children].forEach((c, i) => c.classList.toggle('vision', i === r.best));
+    r.notes.forEach((note, i) => { const el = $('grid').children[i]?.querySelector('.vlm'); if (el) el.textContent = note; });
+  } catch (e) { $('verdict').textContent = 'Vision model failed: ' + e.message; }
+  finally { $('explain').disabled = false; }
+}
+
+// ---- synced zoom and pan ----
+const grid = $('grid');
+grid.addEventListener('wheel', e => {
+  const cell = e.target.closest('.cell'); if (!cell) return;
+  e.preventDefault();
+  const r = cell.getBoundingClientRect(), cx = e.clientX - r.left, cy = e.clientY - r.top;
+  const s = Math.min(Math.max(view.s * Math.exp(-e.deltaY * 0.0025), 1), 40);
+  view.x = cx - (cx - view.x) * (s / view.s); view.y = cy - (cy - view.y) * (s / view.s); view.s = s;
+  if (s === 1) view.x = view.y = 0;
+  applyView();
+}, { passive: false });
+let drag = null;
+grid.addEventListener('pointerdown', e => {
+  const cell = e.target.closest('.cell'); if (!cell) return;
+  if (e.target.closest('.fs')) return setSolo(solo == null ? +cell.dataset.i : null);
+  drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false, i: +cell.dataset.i };
+  grid.setPointerCapture(e.pointerId);
+});
+grid.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+  if (drag.moved && view.s > 1) { view.x = drag.vx + dx; view.y = drag.vy + dy; applyView(); }
+});
+grid.addEventListener('pointerup', () => { if (drag && !drag.moved) toggle(drag.i); drag = null; });
+grid.addEventListener('dblclick', () => { view = { s: 1, x: 0, y: 0 }; applyView(); });
+addEventListener('resize', layout);
+// The photo under the mouse is looked up when F is pressed, so it is right even if the group changed under a resting mouse.
+addEventListener('pointermove', e => { mouse = { x: e.clientX, y: e.clientY }; });
+const underMouse = () => { const i = +(document.elementFromPoint(mouse.x, mouse.y)?.closest('.cell')?.dataset.i ?? NaN); return isNaN(i) ? null : i; };
+
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || $('grid').hidden || e.metaKey || e.ctrlKey) return;
+  if (/^[0-9]$/.test(e.key)) toggle(e.key === '0' ? 9 : +e.key - 1);
+  else if (e.key === 'Enter') apply();
+  else if (e.key.toLowerCase() === 'f') setSolo(solo == null ? underMouse() ?? 0 : null);
+  else if (e.key === 'Escape' && solo != null) setSolo(null);
+  else if (e.key === ' ' && solo != null) toggle(solo);
+  else if (e.key === 'Backspace' || e.key === 'Delete') toggle(solo ?? underMouse());
+  else if (e.key.toLowerCase() === 'k') toggleKeep(solo ?? underMouse());
+  else if (e.key === 'ArrowRight') solo != null ? setSolo(solo + 1) : next();
+  else if (e.key === 'ArrowLeft') solo != null ? setSolo(solo - 1) : back();
+  else if (e.key.toLowerCase() === 'a') accept();
+  else if (e.key.toLowerCase() === 'e') explain();
+  else return;
+  e.preventDefault();
+});
+$('scan').onclick = scan; $('apply').onclick = apply; $('skip').onclick = next; $('back').onclick = back;
+$('accept').onclick = accept; $('explain').onclick = explain;
+
+// ---- start ----
+const saved = JSON.parse(localStorage.getItem('range') || 'null'), today = new Date();
+$('to').value = saved?.[1] || isoDay(today);
+$('from').value = saved?.[0] || isoDay(new Date(today - 14 * 864e5));
+api('/api/info').then(info => {
+  $('kind').textContent = info.kind;
+  info.sources.forEach(s => $('source').add(new Option(s.label, s.id)));
+  const last = localStorage.getItem('source');
+  $('source').value = info.sources.some(s => s.id === last) ? last : info.default;
+});
+api('/api/scan').then(job => { if (job.state === 'running') { $('scan').disabled = true; $('progress').hidden = false; poll(); } });
+</script>
+</body>
+</html>
