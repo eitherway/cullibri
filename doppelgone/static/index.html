@@ -89,6 +89,12 @@
   .bar i { display: block; height: 100%; background: #fff; }
   .info .vlm { color: #accbfa; }
   #position { font-weight: 700; }
+  #track { height: 5px; background: var(--line); }
+  #track i { display: block; height: 100%; width: 0; background: var(--primary); border-radius: 0 999px 999px 0; transition: width .4s ease; }
+  #trashed { position: absolute; z-index: 5; top: 14px; left: 50%; translate: -50% 0; pointer-events: none; background: #000a; color: #fff; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; border-radius: 999px; padding: 2px 12px; }
+  #trashed.bump { animation: bump .35s ease; }
+  @keyframes bump { 40% { scale: 1.25; } }
+  @media (prefers-reduced-motion: reduce) { #track i { transition: none; } #trashed.bump { animation: none; } }
   #verdict { max-width: 60ch; }
   #toast { position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%); background: var(--subtle); color: var(--text); border: 1px solid var(--subtle-line); padding: 9px 18px; border-radius: 999px; display: none; }
 </style>
@@ -110,10 +116,13 @@
 <main>
   <div id="empty">Pick a date range and press “Find similar photos”.</div>
   <div id="grid" hidden></div>
+  <div id="trashed" hidden></div>
 </main>
 
+<div id="track" hidden role="progressbar" aria-label="Groups done" aria-valuemin="0"><i></i></div>
 <footer id="bar" hidden>
   <span id="position"></span>
+  <span class="dim" id="left"></span>
   <span class="dim" id="verdict"></span>
   <span class="grow"></span>
   <span class="dim hint">F fullscreen · scroll zooms · drag pans · double-click resets</span>
@@ -130,7 +139,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-let groups = [], current = 0, marked = new Set(), view = { s: 1, x: 0, y: 0 }, full = false, aspect = 0.75, solo = null, mouse = { x: -1, y: -1 }, lastHover = null;
+let groups = [], current = 0, totalGroups = 0, trashedCount = 0, marked = new Set(), view = { s: 1, x: 0, y: 0 }, full = false, aspect = 0.75, solo = null, mouse = { x: -1, y: -1 }, lastHover = null;
 
 const api = async (path, body) => {
   const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);
@@ -213,8 +222,7 @@ async function poll() {
   if (job.state === 'error') return toast('Scan failed: ' + job.error);
   if (job.state !== 'done') return toast('Scan cancelled. Photos analysed so far are cached.');
   groups = job.groups.filter(g => g.length > 1);
-  current = 0;
-  $('status').textContent = `${job.total} photos, ${groups.length} groups`;
+  current = 0; totalGroups = groups.length; trashedCount = 0;
   show();
 }
 function scanStarted() { $('scan').disabled = true; $('progress').hidden = $('cancel').hidden = false; $('cancel').disabled = false; }
@@ -227,8 +235,9 @@ function show() {
   marked = new Set(); lastHover = null; view = { s: 1, x: 0, y: 0 }; full = false; solo = null;
   $('grid').hidden = $('bar').hidden = !g;
   $('empty').hidden = !!g;
-  if (!g) { $('empty').textContent = groups.length ? 'All groups done.' : 'No groups of similar photos in this range.'; return; }
-  $('position').textContent = `Group ${current + 1} of ${groups.length} · ${g.length} photos`;
+  progress();
+  if (!g) { $('empty').textContent = totalGroups ? `All ${totalGroups} groups done. ${trashedCount} photo${trashedCount === 1 ? '' : 's'} trashed.` : 'No groups of similar photos in this range.'; return; }
+  $('left').textContent = `${g.length} photos in this group`;
   $('verdict').textContent = '';
   $('back').disabled = current === 0;
   $('grid').innerHTML = '';
@@ -282,6 +291,16 @@ function applyView() {
   }
   document.querySelectorAll('.cell img').forEach(img => img.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.s})`);
 }
+// Progress over the groups the scan found: a group counts as done once it was trashed from or skipped past.
+function progress() {
+  const done = totalGroups - groups.length + current;
+  $('track').hidden = !totalGroups;
+  $('track').querySelector('i').style.width = (totalGroups ? done / totalGroups * 100 : 0) + '%';
+  $('track').setAttribute('aria-valuemax', totalGroups); $('track').setAttribute('aria-valuenow', done);
+  $('position').textContent = `${totalGroups - done} of ${totalGroups} groups left`;
+  $('trashed').hidden = !totalGroups;
+  $('trashed').textContent = `${trashedCount} trashed`;
+}
 // Every photo is either kept (the default) or marked for trash.
 function setMark(i, trash) {
   const cell = $('grid').children[i]; if (!cell) return;
@@ -303,6 +322,8 @@ async function apply() {
   try {
     const r = await api('/api/trash', { ids });
     toast(`Moved ${r.trashed} photo${r.trashed > 1 ? 's' : ''} to trash`);
+    trashedCount += r.trashed;
+    $('trashed').classList.remove('bump'); void $('trashed').offsetWidth; $('trashed').classList.add('bump');
     groups.splice(current, 1);
     show();
   } catch (e) { toast('Trash failed: ' + e.message); }
