@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cull</title>
+<title>Doppelgone</title>
+<link rel="icon" type="image/svg+xml" href="/static/logo.svg">
 <style>
   /* Google Sans is served from this app's own folder, so no request leaves the machine. */
   @font-face { font-family: "Google Sans"; font-weight: 400 700; font-display: swap; src: url(/static/fonts/google-sans-latin.woff2) format("woff2");
@@ -33,7 +34,7 @@
   header, footer { background: var(--bg); padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   header { border-bottom: 1px solid var(--line); }
   footer { border-top: 1px solid var(--line); }
-  .brand { font-size: 20px; font-weight: 700; color: var(--primary-text); letter-spacing: -.01em; }
+  .brand { display: inline-flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 700; color: var(--primary-text); letter-spacing: -.01em; }
   .grow { flex: 1; }
   .dim { color: var(--dim); }
   input.date, select { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 6px 10px; font: inherit; }
@@ -94,7 +95,7 @@
 </head>
 <body>
 <header>
-  <span class="brand">Cull</span>
+  <span class="brand"><img src="/static/logo.svg" alt="" width="26" height="26">Doppelgone</span>
   <span class="dim" id="kind"></span>
   <select id="source" aria-label="Photo source"></select>
   <span class="grow"></span>

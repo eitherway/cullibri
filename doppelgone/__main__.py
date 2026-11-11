@@ -4,7 +4,7 @@ import uvicorn
 
 from . import server
 
-parser = argparse.ArgumentParser(prog="cull", description="Pick the best of similar photos, with local models only.")
+parser = argparse.ArgumentParser(prog="doppelgone", description="Pick the best of similar photos, with local models only.")
 parser.add_argument("--folder", help="use a plain folder of photos instead of Immich (for testing)")
 parser.add_argument("--port", type=int, default=8765)
 args = parser.parse_args()

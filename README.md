@@ -1,6 +1,21 @@
-# Immich Cull
+<h1 align="center" style="text-align: center">
+  <br>
+    <img src="doppelgone/static/logo.svg" alt="Doppelgone Logo" width="160" align="center"/>
+  <br>
+  Doppelgone
+</h1>
 
-Did you ever need to quickly needed to sort through about 3000 pictures from your last vacation? Yes? Then you are like me and this tool is probably for you.
+<h4 align="center">Did you ever need to quickly needed to sort through about 3000 pictures from your last vacation? Yes? Then you are like me and this tool is probably for you.</h4>
+
+<p align="center">
+  <a href="#setup">Setup</a> •
+  <a href="#how-the-decision-process-looks-like">How does the Scoring work</a> •
+  <a href="#known-limitations">Known Limitations</a> •
+  <a href="#use-without-immich">Use Without Immich</a> •
+  <a href="#citations">Citations</a>
+</p>
+
+This tool makes it very easy to delete duplicate or near-identical photos. It works with Immich, but can also be used without it. All models are run 100% locally.
 
 Especially if you take 10 pictures that look all almost identical.
 
@@ -15,7 +30,7 @@ Immich is my photo db of choice, so it uses their API to get the pictures/view t
 3. Start it:
 
    ```bash
-   uv run python -m cull
+   uv run python -m doppelgone
    ```
 
 4. Open http://127.0.0.1:8765 and you are good to go.
@@ -44,7 +59,7 @@ I currently disagree with the scoring of the vision and the aesthetics model a l
 ## Use without Immich
 
 ```bash
-uv run python -m cull --folder testdata/photos
+uv run python -m doppelgone --folder testdata/photos
 ```
 
 In this mode "trash" moves files into a `_trash` subfolder.

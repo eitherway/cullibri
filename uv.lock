@@ -501,7 +501,7 @@ wheels = [
 ]
 
 [[package]]
-name = "immich-cull"
+name = "doppelgone"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
