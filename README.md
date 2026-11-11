@@ -15,13 +15,11 @@
   <a href="#citations">Citations</a>
 </p>
 
-This tool makes it very easy to delete duplicate or near-identical photos. It works with Immich, but can also be used without it. All models are run 100% locally.
+This tool makes it very easy to delete duplicate or near-identical photos. Especially if you are like me who takes about 10 pictures that look all almost the same.
 
-Especially if you take 10 pictures that look all almost identical.
+No internet connection needed.  All models are run 100% locally. This was important to me, because I don't want to send all my pictures to OpenAI or Anthropic.
 
-No internet connection needed. 100% local evaluation. This was important to me, because I don't want to send all my pictures to OpenAI or Anthropic.
-
-Immich is my photo db of choice, so it uses their API to get the pictures/view them and delete them. It can however also be used without Immich.
+Immich is my photo db of choice, so it uses their API to get the pictures, view and delete them. It can however also be used without Immich.
 
 ## Setup
 
@@ -45,7 +43,7 @@ The first start downloads the model weights (about 7 GB in total, most of it the
 - **Aesthics:** This step was removed, because I didn't find a suitable model.
   - In the beginning I used the CLIP+MLP Aesthetic Score Predictor from Schuhmann [^schuhmann2022], but that score is not very good for my use case. It's based on CLIP and thus far better on evaluating between different pictures not on a set of very similar pictures.
   - I also tried out FGAesQ (based on Yang et al [^yang2026]), but despite the impressive demo in the paper, the results were very meh in my testing.
-- **Vision model (optional):** Qwen3-VL 8B via MLX compares the photos and names its own pick with reasons; its pick gets a second, blue frame. It does not change the score.
+- **Vision model (optional):** Qwen3-VL 8B via MLX compares the photos and names its own pick with reasons.
 
 **End decision:** Entirely done by you. You have the final say, nothing gets deleted without you.
 
