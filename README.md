@@ -64,7 +64,7 @@ In this mode "trash" moves files into a `_trash` subfolder.
 
 ## Use of AI
 
-This was a quick side project for me, and it was heavily vibecoded by me with Claude. This README is 100% human and all code was reviewed by me.
+This project was a "quick" sidequest and I only wanted a tool to sort through a huge amount of vacation pictures. It was heavily vibe coded by me with Claude. This README is 100% human and all code was reviewed by me.
 
 
 ## Citations
