@@ -1,4 +1,4 @@
-"""Per-photo analysis with local models: similarity embedding, aesthetic score, sharpness, faces, exposure."""
+"""Per-photo analysis, all local: similarity embedding, sharpness, faces, exposure."""
 
 from __future__ import annotations
 
@@ -50,26 +50,12 @@ def _tile_sharpness(energy: np.ndarray, grid: int = 8) -> float:
 class Analyzer:
     def __init__(self) -> None:
         import mediapipe as mp
-        import open_clip
         from mediapipe.tasks import python as mpp
         from mediapipe.tasks.python import vision
 
         self.device = "mps" if torch.backends.mps.is_available() else "cpu"
-        self.clip, _, self.preprocess = open_clip.create_model_and_transforms("ViT-L-14", pretrained="openai")
-        self.clip = self.clip.to(self.device).eval()
 
-        # LAION improved aesthetic predictor: an MLP on top of the CLIP ViT-L/14 embedding.
-        self.aesthetic = torch.nn.Sequential(
-            torch.nn.Linear(768, 1024), torch.nn.Dropout(0.2),
-            torch.nn.Linear(1024, 128), torch.nn.Dropout(0.2),
-            torch.nn.Linear(128, 64), torch.nn.Dropout(0.1),
-            torch.nn.Linear(64, 16), torch.nn.Linear(16, 1),
-        )
-        state = torch.load(MODELS / "laion_aesthetic_l14.pth", map_location="cpu")
-        self.aesthetic.load_state_dict({k.replace("layers.", ""): v for k, v in state.items()})
-        self.aesthetic = self.aesthetic.to(self.device).eval()
-
-        # DINOv2 separates "same motif" from "similar kind of scene" far better than CLIP does.
+        # DINOv2 embeddings decide which photos show the same motif.
         from transformers import AutoImageProcessor, AutoModel
 
         self.dino_pre = AutoImageProcessor.from_pretrained("facebook/dinov2-base")
@@ -93,10 +79,6 @@ class Analyzer:
         h, w = gray.shape
         energy = _gradient_energy(gray)
 
-        emb = self.clip.encode_image(self.preprocess(img).unsqueeze(0).to(self.device))
-        emb = emb / emb.norm(dim=-1, keepdim=True)
-        aesthetic = float(self.aesthetic(emb.float()).item())
-
         faces = []
         result = self.faces.detect(self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=np.ascontiguousarray(rgb)))
         for landmarks, shapes in zip(result.face_landmarks, result.face_blendshapes or []):
@@ -116,7 +98,6 @@ class Analyzer:
             )
 
         metrics = {
-            "aesthetic": aesthetic,
             "sharpness": _tile_sharpness(energy),
             "blown": float((gray >= 250).mean()),
             "crushed": float((gray <= 5).mean()),

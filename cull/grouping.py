@@ -35,7 +35,7 @@ def find_groups(times: list[float], embs: np.ndarray, max_gap: float = MAX_GAP, 
 
 
 def rank_group(metrics: list[dict]) -> list[dict]:
-    """Score each photo of one group from 0 to 100, relative to the others, with plain-language notes."""
+    """Sharpness of each photo relative to the sharpest in its group (0 to 100), with plain-language notes."""
     all_faces = all(m["faces"] for m in metrics)
 
     def sharp(m: dict) -> float:
@@ -46,16 +46,13 @@ def rank_group(metrics: list[dict]) -> list[dict]:
 
     sharps = [sharp(m) for m in metrics]
     best_sharp = max(sharps) or 1.0
-    aes = [m["aesthetic"] for m in metrics]
-    aes_lo, aes_hi = min(aes), max(aes)
     min_blown = min(m["blown"] for m in metrics)
 
     out = []
     for m, s in zip(metrics, sharps):
         notes = []
         s_rel = s / best_sharp
-        a_rel = (m["aesthetic"] - aes_lo) / (aes_hi - aes_lo) if aes_hi - aes_lo > 0.05 else 0.5
-        score = 100 * (0.85 * s_rel + 0.15 * a_rel)
+        score = 100 * s_rel  # the recommendation is the sharpest photo; the notes below are information only
 
         if s_rel >= 0.999:
             notes.append("sharpest")
@@ -64,19 +61,16 @@ def rank_group(metrics: list[dict]) -> list[dict]:
 
         closed = sum(1 for f in m["faces"] if f["blink"] > BLINK_CLOSED)
         if closed:
-            score -= 30
             notes.append(f"eyes closed ({closed} of {len(m['faces'])} faces)" if len(m["faces"]) > 1 else "eyes closed")
 
         extra_blown = m["blown"] - min_blown
         if extra_blown > 0.02:
-            score -= min(extra_blown * 200, 20)
             notes.append("more blown highlights")
 
         out.append(
             {
                 "score": round(max(score, 0.0), 1),
                 "sharpness_rel": round(s_rel, 3),
-                "aesthetic": round(m["aesthetic"], 2),
                 "faces": len(m["faces"]),
                 "eyes_closed": closed,
                 "notes": notes,

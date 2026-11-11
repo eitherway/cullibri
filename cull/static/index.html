@@ -119,7 +119,7 @@
   <button id="back">Back<kbd>←</kbd></button>
   <button id="keepBtn">Keep<kbd>K</kbd></button>
   <button id="trashBtn">Trash<kbd>T</kbd></button>
-  <button id="explain">Ask vision model<kbd>E</kbd></button>
+  <button id="explain">Ask vision model<kbd>V</kbd></button>
   <button id="accept">Trash the rest<kbd>A</kbd></button>
   <button id="skip">Skip<kbd>→</kbd></button>
   <button class="danger" id="apply">Trash marked<kbd>Enter</kbd></button>
@@ -235,12 +235,11 @@ function show() {
     const cell = document.createElement('div');
     cell.className = 'cell' + (p.pick ? ' pick' : '');
     cell.dataset.i = i;
-    const notes = p.notes.length ? ' · ' + p.notes.join(' · ') : '';
     cell.innerHTML = `<img draggable="false" src="/api/img/${encodeURIComponent(p.id)}?size=preview">
       <span class="tag num">${i + 1}</span><button class="tag fs" title="Fullscreen (F)">⤢</button>
       <div class="tags"><span class="tag state">Keep</span><span class="tag rec">Recommended</span><span class="tag eye">Vision pick</span></div>
       <div class="info"><b>${Math.round(p.sharpness_rel * 100)}%</b> sharpness<span class="bar"><i style="width:${Math.round(p.sharpness_rel * 100)}%"></i></span>
-        <div>score ${Math.round(p.score)} · aesthetic ${p.aesthetic.toFixed(1)}${notes}</div>
+        <div>${p.notes.join(' · ')}</div>
         <div class="vlm"></div><div class="dim">${p.name}</div></div>`;
     cell.querySelector('img').onload = e => { if (i === 0) { aspect = e.target.naturalWidth / e.target.naturalHeight; layout(); } };
     $('grid').append(cell);
@@ -371,7 +370,7 @@ addEventListener('keydown', e => {
   else if (e.key === 'ArrowRight') solo != null ? setSolo(solo + 1) : next();
   else if (e.key === 'ArrowLeft') solo != null ? setSolo(solo - 1) : back();
   else if (e.key.toLowerCase() === 'a') accept();
-  else if (e.key.toLowerCase() === 'e') explain();
+  else if (e.key.toLowerCase() === 'v') explain();
   else return;
   e.preventDefault();
 });
