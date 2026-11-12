@@ -22,7 +22,7 @@ This project was developed and tested on a Mac. However, it should be cross-plat
 
 Immich is my picture database of choice, so it uses their API to get the pictures, view and delete them. It can however also be used without Immich.
 
-![Cullibri Screenshot](./assets/screenshot-cullibri.png)
+![Cullibri Screenshot](./assets/screenshot.png)
 
 ## Setup
 
