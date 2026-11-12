@@ -1,8 +1,8 @@
 <h1 align="center" style="text-align: center">
   <br>
-    <img src="doppelgone/static/logo.svg" alt="Doppelgone Logo" width="160" align="center"/>
+    <img src="cullibri/static/logo.svg" alt="Cullibri Logo" width="160" align="center"/>
   <br>
-  Doppelgone
+  Cullibri
 </h1>
 <h4 align="center">Did you ever need to quickly sort through about 3000 pictures from your last vacation? Yes? Then you are like me and this tool is probably for you.</h4>
 
@@ -22,7 +22,7 @@ This project was developed and tested on a Mac. However, it should be cross-plat
 
 Immich is my picture database of choice, so it uses their API to get the pictures, view and delete them. It can however also be used without Immich.
 
-![Doppelgone Screenshot](./assets/screenshot-doppelgone.png)
+![Cullibri Screenshot](./assets/screenshot-cullibri.png)
 
 ## Setup
 
@@ -31,7 +31,7 @@ Immich is my picture database of choice, so it uses their API to get the picture
 3. Start it:
 
    ```bash
-   uv run python -m doppelgone
+   uv run python -m cullibri
    ```
 
 4. Open http://127.0.0.1:8765 and you are good to go.
@@ -59,7 +59,7 @@ I currently disagree with the scoring of the vision and the aesthetics model a l
 ## Use without Immich
 
 ```bash
-uv run python -m doppelgone --folder testdata/photos
+uv run python -m cullibri --folder testdata/photos
 ```
 
 In this mode "trash" moves files into a `_trash` subfolder.

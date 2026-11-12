@@ -1,5 +1,5 @@
 [project]
-name = "doppelgone"
+name = "cullibri"
 version = "0.1.0"
 description = "Pick the best of similar photos in Immich, using local models only"
 requires-python = ">=3.12,<3.13"

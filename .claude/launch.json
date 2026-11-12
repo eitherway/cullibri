@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "doppelgone-testfolder",
+      "name": "cullibri-testfolder",
       "runtimeExecutable": "uv",
-      "runtimeArgs": ["run", "python", "-m", "doppelgone", "--folder", "testdata/photos", "--port", "8766"],
+      "runtimeArgs": ["run", "python", "-m", "cullibri", "--folder", "testdata/photos", "--port", "8766"],
       "port": 8766
     }
   ]

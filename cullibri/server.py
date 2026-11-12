@@ -17,7 +17,7 @@ from .sources import FolderSource, ImmichSource
 
 ROOT = Path(__file__).resolve().parent.parent
 app = FastAPI()
-app.mount("/static", StaticFiles(directory=ROOT / "doppelgone" / "static"), name="static")
+app.mount("/static", StaticFiles(directory=ROOT / "cullibri" / "static"), name="static")
 source = None
 job: dict = {"state": "idle", "done": 0, "total": 0, "groups": [], "error": None, "cancel": False}
 
@@ -65,7 +65,7 @@ def _run(req: ScanRequest) -> None:
 
 @app.get("/")
 def index() -> FileResponse:
-    return FileResponse(ROOT / "doppelgone" / "static" / "index.html")
+    return FileResponse(ROOT / "cullibri" / "static" / "index.html")
 
 
 @app.get("/api/info")
