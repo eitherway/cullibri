@@ -21,7 +21,7 @@ USE_MLX = sys.platform == "darwin" and platform.machine() == "arm64"
 MLX_MODEL = "mlx-community/Qwen3-VL-8B-Instruct-4bit"
 CUDA_MODEL = "Qwen/Qwen3-VL-8B-Instruct"  # loaded in 4-bit, about 7 GB of GPU memory
 CPU_MODEL = "Qwen/Qwen3-VL-2B-Instruct"  # the 8B model is too slow without a GPU
-MAX_PHOTOS = 10
+MAX_PHOTOS = 15
 SIDE = 768
 MAX_TOKENS = 500
 
